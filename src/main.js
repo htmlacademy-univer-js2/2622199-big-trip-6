@@ -1,5 +1,7 @@
-import PagePresenter from './presenter/PagePresenter.js';
+import TripPresenter from './presenter/page-presenter.js';
+import Model from './model/task-model.js';
 
-const siteMainElement = document.querySelector('.trip-events');
-const pagePresenter = new PagePresenter(siteMainElement);
-pagePresenter.init();
+const tripModel = new Model();
+const tripPresenter = new TripPresenter(tripModel);
+
+tripPresenter.init();
