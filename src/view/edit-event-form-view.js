@@ -3,7 +3,7 @@ import {
   formatDate,
   formatTime,
 } from '../utils.js';
-import AbstractView from '../framework/view/abstract-view.js';
+import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
 
 
 function createEditPointTemplate(point = {}, destinations = [], offers = {}) {
@@ -41,7 +41,7 @@ function createEditPointTemplate(point = {}, destinations = [], offers = {}) {
   `).join('');
 
   const destinationsTemplate = destinations.map((dest) => `
-    <option value="${dest.name}"></option>
+    <option value="${dest.id}">${dest.name}</option>
   `).join('');
 
   const offersTemplate = typeOffers.length > 0 ? `
@@ -173,35 +173,76 @@ function createEditPointTemplate(point = {}, destinations = [], offers = {}) {
   `;
 }
 
-export default class EditPointView extends AbstractView{
-  #point = null;
+export default class EditPointView extends AbstractStatefulView{
   #destinations = null;
   #offers = null;
   #handleFormSubmit = null;
   #handleArrowClick = null;
 
+
   constructor({point = null, destinations = [], offers = {}, onFormSubmit, onArrowClick}) {
     super();
-    this.#point = point;
     this.#destinations = destinations;
     this.#offers = offers;
     this.#handleFormSubmit = onFormSubmit;
     this.#handleArrowClick = onArrowClick;
 
-    this.element.querySelector('.event--edit')
-      .addEventListener('submit', this.#formSubmitHandler);
+    this._setState({
+      ...point,
+    });
 
-    this.element.querySelector('.event__rollup-btn')
-      .addEventListener('click', this.#ArrowClickHandler);
   }
 
   get template() {
-    return createEditPointTemplate(this.#point, this.#destinations, this.#offers);
+    return createEditPointTemplate(this._state, this.#destinations, this.#offers);
+  }
+
+  _createElement() {
+    const element = super._createElement();
+    this._restoreHandlers();
+    return element;
+  }
+
+  _restoreHandlers() {
+    this.element.querySelector('.event--edit')
+      .addEventListener('submit', this.#formSubmitHandler);
+    this.element.querySelector('.event__rollup-btn')
+      .addEventListener('click', this.#ArrowClickHandler);
+
+    this.#setTypeChangeHandler();
+    this.#setDestinationChangeHandler();
+  }
+
+  #setTypeChangeHandler() {
+    const typeGroup = this.element.querySelector('.event__type-group');
+    typeGroup.addEventListener('change', (evt) => {
+      if (evt.target.name === 'event-type') {
+        evt.preventDefault();
+        const newType = evt.target.value;
+
+        this.updateElement({
+          type: newType,
+          offers: []
+        });
+      }
+    });
+  }
+
+  #setDestinationChangeHandler() {
+    const destinationInput = this.element.querySelector('.event__input--destination');
+    destinationInput.addEventListener('change', (evt) => {
+      evt.preventDefault();
+      const destinationId = evt.target.value;
+
+      this.updateElement({
+        destination: destinationId
+      });
+    });
   }
 
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
-    this.#handleFormSubmit();
+    this.#handleFormSubmit(this._state);
   };
 
   #ArrowClickHandler = () => {
