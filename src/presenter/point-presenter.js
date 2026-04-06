@@ -52,7 +52,7 @@ export default class PointPresenter {
     this.#pointEditComponent = new EditPointView({
       point: this.#point,
       destinations: this.#destinations,
-      typeOffers,
+      offers: this.#offers,
       onFormSubmit: this.#handleFormSubmit,
       onArrowClick: this.#handleCloseClick,
     });
@@ -88,6 +88,8 @@ export default class PointPresenter {
   #replaceCardToForm() {
     this.#handleModeChange();
     replace(this.#pointEditComponent, this.#pointComponent);
+    this.#pointEditComponent._restoreHandlers();
+
     document.addEventListener('keydown', this.#escKeyDownHandler);
     this.#mode = Mode.EDITING;
   }
