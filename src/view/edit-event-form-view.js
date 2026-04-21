@@ -255,7 +255,7 @@ export default class EditPointView extends AbstractStatefulView{
         dateFormat: dateFormat,
         defaultDate: this._state.dateFrom,
         enableTime: true,
-        time_24hr: true,
+        time24Hr: true,
         minDate: 'today',
         maxDate: this._state.dateTo,
         onChange: this.#dateFromChangeHandler,
@@ -267,7 +267,7 @@ export default class EditPointView extends AbstractStatefulView{
         dateFormat: dateFormat,
         defaultDate: this._state.dateTo,
         enableTime: true,
-        time_24hr: true,
+        time24Hr: true,
         minDate: this._state.dateFrom,
         onChange: this.#dateToChangeHandler,
       });
