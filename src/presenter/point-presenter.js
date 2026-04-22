@@ -180,3 +180,4 @@ export default class PointPresenter {
 function isDatesEqual(dateA, dateB) {
   return (dateA === null && dateB === null) || dayjs(dateA).isSame(dateB, 'D');
 }
+
