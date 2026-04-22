@@ -32,7 +32,7 @@ function createSortTemplate(currentSortType) {
   );
 }
 
-export default class SortView extends AbstractView {
+export default class Sorting extends AbstractView {
   #handleSortTypeChange = null;
   #currentSortType = null;
 

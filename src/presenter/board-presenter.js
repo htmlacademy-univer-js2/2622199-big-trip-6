@@ -1,4 +1,4 @@
-import SortView from '../view/sort-view.js';
+import Sorting from '../view/sort-view.js';
 import EventListView from '../view/event-list-view.js';
 import ListEmptyView from '../view/list-empty-view.js';
 import LoadingView from '../view/loading-view.js';
@@ -178,7 +178,7 @@ export default class BoardPresenter {
   }
 
   #renderSort() {
-    this.#sortComponent = new SortView({
+    this.#sortComponent = new Sorting({
       currentSortType: this.#currentSortType,
       onSortTypeChange: this.#handleSortTypeChange
     });
