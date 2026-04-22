@@ -1,6 +1,8 @@
-import EditPointView from '../view/edit-event-form-view.js';
 import PointView from '../view/point-view.js';
-import { render, replace, remove } from '../framework/render.js';
+import EditPointView from '../view/edit-point-view.js';
+import {render, replace, remove} from '../framework/render.js';
+import {UserAction, UpdateType} from '../const.js';
+import dayjs from 'dayjs';
 
 const Mode = {
   DEFAULT: 'DEFAULT',
@@ -8,57 +10,51 @@ const Mode = {
 };
 
 export default class PointPresenter {
-  #container = null;
-  #handleDataChange = null;
-  #handleModeChange = null;
+  #pointListContainer = null;
+  #changeData = null;
+  #changeMode = null;
 
   #pointComponent = null;
   #pointEditComponent = null;
 
   #point = null;
-  #mode = Mode.DEFAULT;
-
   #destinations = null;
   #offers = null;
+  #mode = Mode.DEFAULT;
 
-  constructor({ container, onDataChange, onModeChange, destinations, offers }) {
-    this.#container = container;
-    this.#handleDataChange = onDataChange;
-    this.#handleModeChange = onModeChange;
-    this.#destinations = destinations;
-    this.#offers = offers;
+  constructor(pointListContainer, changeData, changeMode) {
+    this.#pointListContainer = pointListContainer;
+    this.#changeData = changeData;
+    this.#changeMode = changeMode;
   }
 
-  init(point) {
+  init(point, destinations, offers) {
     this.#point = point;
+    this.#destinations = destinations;
+    this.#offers = offers;
 
     const prevPointComponent = this.#pointComponent;
     const prevPointEditComponent = this.#pointEditComponent;
 
-    const destinationObj = this.#destinations.find(
-      (d) => d.id === point.destination
-    );
-
-    const typeOffers = this.#offers[point.type] || [];
-
     this.#pointComponent = new PointView({
       point: this.#point,
-      destination: destinationObj,
-      typeOffers,
-      onArrowClick: this.#handleEditClick,
-      onStarClick: this.#handleFavoriteClick,
+      pointDestinations: this.#destinations,
+      pointOffers: this.#offers,
+      onEditClick: this.#handleEditClick,
+      onFavoriteClick: this.#handleFavoriteClick,
     });
 
     this.#pointEditComponent = new EditPointView({
       point: this.#point,
-      destinations: this.#destinations,
-      offers: this.#offers,
+      pointDestinations: this.#destinations,
+      pointOffers: this.#offers,
       onFormSubmit: this.#handleFormSubmit,
-      onArrowClick: this.#handleCloseClick,
+      onFormClick: this.#handleFormClick,
+      onDeleteClick: this.#handleDeleteClick,
     });
 
     if (prevPointComponent === null || prevPointEditComponent === null) {
-      render(this.#pointComponent, this.#container);
+      render(this.#pointComponent, this.#pointListContainer);
       return;
     }
 
@@ -81,49 +77,106 @@ export default class PointPresenter {
 
   resetView() {
     if (this.#mode !== Mode.DEFAULT) {
-      this.#replaceFormToCard();
+      this.#pointEditComponent.reset(this.#point);
+      this.#replaceFormToPoint();
     }
   }
 
-  #replaceCardToForm() {
-    this.#handleModeChange();
-    replace(this.#pointEditComponent, this.#pointComponent);
-    this.#pointEditComponent._restoreHandlers();
-
-    document.addEventListener('keydown', this.#escKeyDownHandler);
-    this.#mode = Mode.EDITING;
+  setSaving() {
+    if (this.#mode === Mode.EDITING) {
+      this.#pointEditComponent.updateElement({
+        isDisabled: true,
+        isSaving: true,
+      });
+    }
   }
 
-  #replaceFormToCard() {
+  setDeleting() {
+    if (this.#mode === Mode.EDITING) {
+      this.#pointEditComponent.updateElement({
+        isDisabled: true,
+        isDeleting: true,
+      });
+    }
+  }
+
+  setAborting() {
+    if (this.#mode === Mode.DEFAULT) {
+      this.#pointComponent.shake();
+      return;
+    }
+
+    const resetFormState = () => {
+      this.#pointEditComponent.updateElement({
+        isDisabled: false,
+        isSaving: false,
+        isDeleting: false,
+      });
+    };
+
+    this.#pointEditComponent.shake(resetFormState);
+  }
+
+  #replacePointToForm = () => {
+    replace(this.#pointEditComponent, this.#pointComponent);
+    document.addEventListener('keydown', this.#escKeyDownHandler);
+    this.#changeMode();
+    this.#mode = Mode.EDITING;
+  };
+
+  #replaceFormToPoint = () => {
     replace(this.#pointComponent, this.#pointEditComponent);
     document.removeEventListener('keydown', this.#escKeyDownHandler);
     this.#mode = Mode.DEFAULT;
-  }
+  };
 
   #escKeyDownHandler = (evt) => {
-    if (evt.key === 'Escape') {
+    if (evt.key === 'Escape' || evt.key === 'Esc') {
       evt.preventDefault();
-      this.#replaceFormToCard();
+      this.#pointEditComponent.reset(this.#point);
+      this.#replaceFormToPoint();
     }
   };
 
   #handleEditClick = () => {
-    this.#replaceCardToForm();
-  };
-
-  #handleCloseClick = () => {
-    this.#replaceFormToCard();
+    this.#replacePointToForm();
   };
 
   #handleFavoriteClick = () => {
-    this.#handleDataChange({
-      ...this.#point,
-      isFavorite: !this.#point.isFavorite,
-    });
+    this.#changeData(
+      UserAction.UPDATE_POINT,
+      UpdateType.MINOR,
+      {...this.#point, isFavorite: !this.#point.isFavorite},
+    );
   };
 
-  #handleFormSubmit = (updatedPoint) => {
-    this.#handleDataChange(updatedPoint);
-    this.#replaceFormToCard();
+  #handleFormSubmit = (update) => {
+    const isMinorUpdate =
+      !isDatesEqual(this.#point.dateFrom, update.dateFrom) ||
+      !isDatesEqual(this.#point.dateTo, update.dateTo) ||
+      this.#point.basePrice !== update.basePrice;
+
+    this.#changeData(
+      UserAction.UPDATE_POINT,
+      isMinorUpdate ? UpdateType.MINOR : UpdateType.PATCH,
+      update,
+    );
   };
+
+  #handleDeleteClick = (point) => {
+    this.#changeData(
+      UserAction.DELETE_POINT,
+      UpdateType.MINOR,
+      point,
+    );
+  };
+
+  #handleFormClick = () => {
+    this.#pointEditComponent.reset(this.#point);
+    this.#replaceFormToPoint();
+  };
+}
+
+function isDatesEqual(dateA, dateB) {
+  return (dateA === null && dateB === null) || dayjs(dateA).isSame(dateB, 'D');
 }
