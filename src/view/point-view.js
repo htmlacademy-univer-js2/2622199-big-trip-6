@@ -1,12 +1,12 @@
 import AbstractView from '../framework/view/abstract-view.js';
 import {humanizePointDate, humanizePointTime, getPointDuration} from '../utils/date.js';
+import { getPointDestination, getPointOffers } from '../utils/point.js';
 
 function createPointTemplate(point, destinations, offers) {
   const {basePrice, dateFrom, dateTo, isFavorite, type} = point;
-  const pointDestination = destinations.find((dest) => dest.id === point.destination);
-  const pointTypeOffers = offers.find((offer) => offer.type === type);
-  const pointOffers = pointTypeOffers ? pointTypeOffers.offers : [];
-  const selectedOffers = pointOffers.filter((offer) => point.offers.includes(offer.id));
+
+  const pointDestination = getPointDestination(destinations, point.destination);
+  const selectedOffers = getPointOffers(offers, point);
 
   const favoriteClassName = isFavorite
     ? 'event__favorite-btn--active'
@@ -36,8 +36,7 @@ function createPointTemplate(point, destinations, offers) {
           ${selectedOffers.map((offer) => `
             <li class="event__offer">
               <span class="event__offer-title">${offer.title}</span>
-              &plus;&euro;&nbsp;
-              <span class="event__offer-price">${offer.price}</span>
+              +€&nbsp;<span class="event__offer-price">${offer.price}</span>
             </li>
           `).join('')}
         </ul>
