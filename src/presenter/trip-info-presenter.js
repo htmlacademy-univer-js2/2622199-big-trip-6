@@ -2,6 +2,9 @@ import TripInfoView from '../view/trip-info-view.js';
 import {render, remove, RenderPosition, replace} from '../framework/render.js';
 import {sortPointDay} from '../utils/sort.js';
 import {formatTripDates} from '../utils/date.js';
+import {getPointDestination, getPointOffers} from '../utils/point.js';
+
+const MAX_CITIES_TO_DISPLAY = 3;
 
 export default class TripInfoPresenter {
   #tripInfoContainer = null;
@@ -11,7 +14,6 @@ export default class TripInfoPresenter {
   constructor({tripInfoContainer, pointsModel}) {
     this.#tripInfoContainer = tripInfoContainer;
     this.#pointsModel = pointsModel;
-
     this.#pointsModel.addObserver(this.#handleModelEvent);
   }
 
@@ -19,18 +21,28 @@ export default class TripInfoPresenter {
     const points = this.#pointsModel.points;
 
     if (points.length === 0) {
-      if (this.#tripInfoComponent) {
-        remove(this.#tripInfoComponent);
-        this.#tripInfoComponent = null;
-      }
+      this.#removeTripInfo();
       return;
     }
 
     const sortedPoints = [...points].sort(sortPointDay);
     const tripInfo = this.#calculateTripInfo(sortedPoints);
+    this.#renderTripInfo(tripInfo);
+  }
 
+  #handleModelEvent = () => {
+    this.init();
+  };
+
+  #removeTripInfo() {
+    if (this.#tripInfoComponent) {
+      remove(this.#tripInfoComponent);
+      this.#tripInfoComponent = null;
+    }
+  }
+
+  #renderTripInfo(tripInfo) {
     const prevTripInfoComponent = this.#tripInfoComponent;
-
     this.#tripInfoComponent = new TripInfoView({tripInfo});
 
     if (prevTripInfoComponent === null) {
@@ -42,48 +54,50 @@ export default class TripInfoPresenter {
     remove(prevTripInfoComponent);
   }
 
-  #handleModelEvent = () => {
-    this.init();
-  };
-
   #calculateTripInfo(points) {
     const startPoint = points[0];
     const endPoint = points[points.length - 1];
 
-    // Route
+    const routeTitle = this.#getRouteTitle(points);
+    const dates = formatTripDates(startPoint.dateFrom, endPoint.dateTo);
+    const cost = this.#calculateTotalCost(points);
+
+    return {
+      title: routeTitle,
+      dates,
+      cost
+    };
+  }
+
+  #getRouteTitle(points) {
     const cityNames = points.map((point) => {
-      const destination = this.#pointsModel.destinations.find((dest) => dest.id === point.destination);
+      const destination = getPointDestination(this.#pointsModel.destinations, point.destination);
       return destination ? destination.name : '';
     });
 
-    let routeTitle = '';
-    if (cityNames.length > 3) {
-      routeTitle = `${cityNames[0]} &mdash; ... &mdash; ${cityNames[cityNames.length - 1]}`;
-    } else {
-      routeTitle = cityNames.join(' &mdash; ');
+    if (cityNames.length > MAX_CITIES_TO_DISPLAY) {
+      return `${cityNames[0]} &mdash; ... &mdash; ${cityNames[cityNames.length - 1]}`;
     }
 
-    // Dates
-    const dates = formatTripDates(startPoint.dateFrom, endPoint.dateTo);
+    return cityNames.join(' &mdash; ');
+  }
 
-    // Cost
+  #calculateTotalCost(points) {
     let totalCost = 0;
 
     points.forEach((point) => {
       totalCost += point.basePrice;
 
-      const offers = this.#pointsModel.offers.find((o) => o.type === point.type)?.offers || [];
-      const selectedOffers = offers.filter((offer) => point.offers.includes(offer.id));
+      const selectedOffers = getPointOffers(
+        this.#pointsModel.offers,
+        point
+      );
 
       selectedOffers.forEach((offer) => {
         totalCost += offer.price;
       });
     });
 
-    return {
-      title: routeTitle,
-      dates: dates,
-      cost: totalCost
-    };
+    return totalCost;
   }
 }

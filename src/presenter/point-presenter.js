@@ -9,14 +9,14 @@ const Mode = {
   EDITING: 'EDITING',
 };
 
+const isDatesEqual = (dateA, dateB) => (dateA === null && dateB === null) || dayjs(dateA).isSame(dateB, 'D');
+
 export default class PointPresenter {
   #pointListContainer = null;
   #changeData = null;
   #changeMode = null;
-
   #pointComponent = null;
   #pointEditComponent = null;
-
   #point = null;
   #destinations = null;
   #offers = null;
@@ -176,8 +176,3 @@ export default class PointPresenter {
     this.#replaceFormToPoint();
   };
 }
-
-function isDatesEqual(dateA, dateB) {
-  return (dateA === null && dateB === null) || dayjs(dateA).isSame(dateB, 'D');
-}
-

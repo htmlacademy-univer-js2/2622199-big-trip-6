@@ -5,7 +5,10 @@ import PointsModel from './model/points-model.js';
 import FilterModel from './model/filter-model.js';
 import PointsApiService from './points-api-service.js';
 
-const AUTHORIZATION = `Basic ${Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)}`;
+const RANDOM_BASE = 36;
+const SUBSTRING_START = 2;
+const SUBSTRING_END = 15;
+const AUTHORIZATION = `Basic ${Math.random().toString(RANDOM_BASE).substring(SUBSTRING_START, SUBSTRING_END) + Math.random().toString(RANDOM_BASE).substring(SUBSTRING_START, SUBSTRING_END)}`;
 const END_POINT = 'https://24.objects.htmlacademy.pro/big-trip';
 
 const siteMainElement = document.querySelector('.page-main');

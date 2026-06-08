@@ -32,7 +32,6 @@ export default class NewPointPresenter {
     });
 
     render(this.#pointEditComponent, this.#pointListContainer, RenderPosition.AFTERBEGIN);
-
     document.addEventListener('keydown', this.#escKeyDownHandler);
   }
 
@@ -42,10 +41,8 @@ export default class NewPointPresenter {
     }
 
     this.#destroyCallback?.();
-
     remove(this.#pointEditComponent);
     this.#pointEditComponent = null;
-
     document.removeEventListener('keydown', this.#escKeyDownHandler);
   }
 
